@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>콘덴싱 보일러 MAP</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>서울시 공동주택 콘덴싱 보일러 설치 맵</title>
 
   <!-- Tailwind CSS CDN -->
   <script>
@@ -22,120 +22,120 @@
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
-<body class="m-0 bg-slate-100 font-sans">
+<body class="m-0 bg-slate-950 font-sans text-slate-100">
 
   <!-- 상단 패널 -->
-  <div id="topPanel"
-       class="bg-white shadow-md rounded-b-3xl pt-6 pb-4">
-    <div class="max-w-3xl mx-auto px-4">
+  <div id="topPanel" class="relative">
+    <!-- 배경 그라데이션 -->
+    <div class="absolute inset-0 bg-gradient-to-b from-indigo-950 via-slate-950 to-slate-950"></div>
 
-      <!-- 제목 -->
-      <header class="text-3xl sm:text-4xl font-extrabold text-center mb-1">
-        콘덴싱 보일러 MAP
-      </header>
+    <div class="relative max-w-4xl mx-auto px-4 pt-8 pb-5">
+      <!-- 헤더 카드 -->
+      <div class="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl shadow-[0_20px_60px_rgba(0,0,0,0.45)] overflow-hidden">
+        <div class="px-5 sm:px-8 pt-6 sm:pt-7 pb-6 sm:pb-7">
 
-      <!-- 서브텍스트 -->
-      <div class="text-sm sm:text-base text-slate-600 text-center mb-4">
-        주소를 검색하면 해당 지역 난방유형을 확인할 수 있습니다.
-      </div>
+          <!-- 제목 -->
+          <header class="text-2xl sm:text-4xl font-extrabold tracking-tight text-center">
+            서울시 공동주택 콘덴싱 보일러 설치 맵
+          </header>
 
-      <!-- 검색 박스 -->
-      <div id="searchBox" class="mt-2">
-        <input
-          id="addr"
-          class="w-full px-4 py-3 sm:py-4 text-lg sm:text-xl font-semibold text-center border-2 border-slate-500 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          placeholder="주소를 입력하세요"
-        >
-        <button
-          onclick="searchAddress()"
-          class="w-full mt-3 py-3 sm:py-4 text-lg sm:text-xl font-bold rounded-2xl bg-blue-600 hover:bg-blue-700 text-white transition-colors">
-          🔍 주소 검색
-        </button>
-      </div>
+          <!-- 서브텍스트 -->
+          <div class="mt-2 text-center text-sm sm:text-base text-slate-300">
+            주소를 검색하면 해당 지역 난방유형을 확인할 수 있습니다.
+          </div>
 
-      <!-- 에러 메시지 -->
-      <div
-        id="errorBox"
-        class="mt-3 px-4 py-3 text-sm sm:text-base rounded-2xl border-2 border-red-400 bg-red-50 text-red-800 hidden">
-      </div>
+          <!-- 검색 박스 -->
+          <div id="searchBox" class="mt-5">
+            <div class="flex flex-col sm:flex-row gap-3">
+              <input
+                id="addr"
+                class="w-full px-4 py-3 sm:py-4 text-base sm:text-lg font-semibold text-center rounded-2xl
+                       bg-slate-900/60 border border-white/10 text-slate-100 placeholder:text-slate-400
+                       outline-none focus:ring-2 focus:ring-indigo-400/70 focus:border-indigo-300/70"
+                placeholder="주소를 입력하세요 (예: 국회대로76길22)"
+              />
+              <button
+                onclick="searchAddress()"
+                class="w-full sm:w-48 py-3 sm:py-4 text-base sm:text-lg font-bold rounded-2xl
+                       bg-indigo-500 hover:bg-indigo-400 active:bg-indigo-600
+                       text-slate-950 transition-colors shadow-lg shadow-indigo-500/20">
+                🔍 주소 검색
+              </button>
+            </div>
 
-      <!-- 검색 결과 리스트 -->
-      <div
-        id="resultBox"
-        class="mt-3 border border-slate-200 bg-white rounded-2xl shadow-sm overflow-hidden hidden">
+            <!-- 힌트 배지 -->
+            <div class="mt-3 flex flex-wrap justify-center gap-2 text-xs sm:text-sm">
+              <span class="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-slate-300">도로명/지번/건물명 가능</span>
+              <span class="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-slate-300">검색 후 목록에서 주소를 선택하세요</span>
+            </div>
+          </div>
 
-        <div id="resultHeader"
-             class="flex justify-between items-center px-4 py-2 bg-slate-50 text-sm sm:text-base font-semibold text-slate-700">
-          <span>주소</span>
-          <span>우편번호</span>
+          <!-- 에러 메시지 -->
+          <div
+            id="errorBox"
+            class="mt-4 px-4 py-3 text-sm sm:text-base rounded-2xl border border-rose-400/40 bg-rose-500/10 text-rose-200 hidden">
+          </div>
+
+          <!-- 검색 결과 리스트 -->
+          <div
+            id="resultBox"
+            class="mt-4 rounded-2xl border border-white/10 bg-slate-900/40 overflow-hidden hidden">
+
+            <div id="resultHeader"
+              class="flex justify-between items-center px-4 py-3 bg-white/5 text-xs sm:text-sm font-semibold text-slate-300">
+              <span>주소</span>
+              <span>우편번호</span>
+            </div>
+
+            <div id="resultList"></div>
+          </div>
+
+          <!-- 난방유형 안내 -->
+          <div
+            id="infoBox"
+            class="mt-4 px-5 py-4 text-lg sm:text-2xl font-extrabold rounded-2xl hidden">
+          </div>
+
         </div>
-
-        <div id="resultList"></div>
       </div>
-
-      <!-- 난방유형 안내 -->
-      <div
-        id="infoBox"
-        class="mt-3 px-4 py-4 text-xl sm:text-2xl font-bold rounded-2xl hidden">
-      </div>
-
-      <!-- 필터 버튼 -->
-      <div
-        id="filterBox"
-        class="mt-3 flex flex-wrap justify-center gap-3">
-        <button
-          class="filterBtn flex-1 min-w-[140px] max-w-[200px] px-4 py-2 text-base sm:text-lg rounded-full border-2 border-slate-300 bg-white hover:bg-slate-50 transition-colors"
-          onclick="filterType('콘덴싱보일러', this)">
-          콘덴싱보일러
-        </button>
-        <button
-          class="filterBtn flex-1 min-w-[140px] max-w-[200px] px-4 py-2 text-base sm:text-lg rounded-full border-2 border-slate-300 bg-white hover:bg-slate-50 transition-colors"
-          onclick="filterType('일반형보일러', this)">
-          일반형보일러
-        </button>
-        <button
-          class="filterBtn flex-1 min-w-[140px] max-w-[200px] px-4 py-2 text-base sm:text-lg rounded-full border-2 border-slate-300 bg-white hover:bg-slate-50 transition-colors"
-          onclick="filterType('중앙난방', this)">
-          중앙난방
-        </button>
-        <button
-          class="filterBtn flex-1 min-w-[140px] max-w-[200px] px-4 py-2 text-base sm:text-lg rounded-full border-2 border-slate-300 bg-white hover:bg-slate-50 transition-colors"
-          onclick="filterType('지역난방', this)">
-          지역난방
-        </button>
-      </div>
-
     </div>
   </div>
 
-  <!-- 지도 타이틀 -->
-  <div class="text-center text-xs sm:text-sm font-semibold text-slate-600 py-3">
-    ※ 아래 지도는 참고용입니다
-  </div>
+  <!-- 지도 영역 -->
+  <div class="max-w-6xl mx-auto px-4 pb-8 -mt-2">
+    <div class="flex items-center justify-between mb-2">
+      <div class="text-xs sm:text-sm font-semibold text-slate-400">
+        ※ 아래 지도는 참고용입니다
+      </div>
+      <div class="text-[11px] sm:text-xs text-slate-500">
+        (마커는 선택한 주소 기준으로 표시됩니다)
+      </div>
+    </div>
 
-  <!-- 지도 -->
-  <div class="max-w-5xl mx-auto px-4 pb-6">
-    <div id="map" class="w-full h-[60vh] rounded-2xl shadow-md border border-slate-200"></div>
+    <div class="rounded-3xl border border-white/10 bg-white/5 backdrop-blur shadow-[0_20px_60px_rgba(0,0,0,0.45)] overflow-hidden">
+      <div id="map" class="w-full h-[62vh]"></div>
+    </div>
   </div>
 
   <!-- Kakao Map SDK -->
   <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=485d2de99e1aa2076405dfb51411b5d7&libraries=services&autoload=false"></script>
 
   <script>
-    kakao.maps.load(function() {
+    kakao.maps.load(function () {
 
-      let map = new kakao.maps.Map(document.getElementById("map"), {
+      const map = new kakao.maps.Map(document.getElementById("map"), {
         center: new kakao.maps.LatLng(36.3, 127.9),
-        level: 11
+        level: 11,
       });
 
-      let geocoder = new kakao.maps.services.Geocoder();
-      let places   = new kakao.maps.services.Places();
+      const geocoder = new kakao.maps.services.Geocoder();
+      const places = new kakao.maps.services.Places();
 
       let currentOverlays = [];
-      let allPoints = [];
+      let allPoints = []; // 누적 저장 (향후 확장용)
 
       // 🔹 난방유형 DB (예시)
+      // - 실제 운영 시: 주소/단지명 키를 normalizeText 규칙에 맞게 저장하는 걸 권장
       const heatAddrDB = {
         "헬리오시티": "지역난방",
         "래미안퍼스티지": "지역난방",
@@ -144,7 +144,9 @@
 
       function normalizeText(t) {
         if (!t) return "";
-        return t.toString().trim()
+        return t
+          .toString()
+          .trim()
           .replace(/\s+/g, "")
           .replace(/-/g, "")
           .replace(/[^\uAC00-\uD7A3a-zA-Z0-9]/g, "")
@@ -159,35 +161,36 @@
         return normalizeText(name);
       }
 
-      function getColor(type) {
-        if (type === "콘덴싱보일러") return "green";
-        if (type === "일반형보일러") return "red";
-        if (type === "중앙난방" || type === "지역난방") return "gray";
-        return "black";
+      function getAccentClass(type) {
+        if (type === "콘덴싱보일러") return "text-emerald-300";
+        if (type === "일반형보일러") return "text-rose-300";
+        if (type === "중앙난방") return "text-slate-300";
+        if (type === "지역난방") return "text-slate-300";
+        return "text-amber-300";
       }
 
       function showError(msg) {
-        let box = document.getElementById("errorBox");
+        const box = document.getElementById("errorBox");
         box.classList.remove("hidden");
         box.textContent = msg;
       }
 
       function clearOverlays() {
-        currentOverlays.forEach(o => o.setMap(null));
+        currentOverlays.forEach((o) => o.setMap(null));
         currentOverlays = [];
       }
 
-      window.searchAddress = function() {
+      window.searchAddress = function () {
 
         document.getElementById("errorBox").classList.add("hidden");
 
-        let keyword = document.getElementById("addr").value.trim();
+        const keyword = document.getElementById("addr").value.trim();
         if (!keyword) {
           alert("주소를 입력하세요!");
           return;
         }
 
-        geocoder.addressSearch(keyword, function(result, status) {
+        geocoder.addressSearch(keyword, function (result, status) {
 
           if (status === kakao.maps.services.Status.OK) {
             showResult(result);
@@ -195,66 +198,70 @@
           }
 
           // 도로명 검색 안되면 키워드 검색
-          places.keywordSearch(keyword, function(res, stat) {
+          places.keywordSearch(keyword, function (res, stat) {
             if (stat === kakao.maps.services.Status.OK) {
               showResult(res);
             } else {
-              showError("주소 검색이 실패했습니다.");
+              showError("주소 검색이 실패했습니다. (주소/건물명/지번을 다시 확인해주세요)");
             }
           });
-
         });
       };
 
       function getZip(r) {
         return (r.road_address && r.road_address.zone_no) ? r.road_address.zone_no :
-               (r.zone_no) ? r.zone_no :
-               (r.address && r.address.zip_code) ? r.address.zip_code :
-               "미확인";
+          (r.zone_no) ? r.zone_no :
+            (r.address && r.address.zip_code) ? r.address.zip_code :
+              "미확인";
       }
 
       function showResult(result) {
 
-        let box  = document.getElementById("resultBox");
-        let list = document.getElementById("resultList");
+        const box = document.getElementById("resultBox");
+        const list = document.getElementById("resultList");
         list.innerHTML = "";
         box.classList.remove("hidden");
 
         document.getElementById("infoBox").classList.add("hidden");
 
-        let used = new Set();
+        const used = new Set();
 
-        result.forEach(r => {
+        result.forEach((r) => {
 
-          let full =
+          const full =
             r.road_address ? r.road_address.address_name :
-            r.address_name ? r.address_name :
-            r.address ? r.address.address_name :
-            r.place_name || "주소 미확인";
+              r.address_name ? r.address_name :
+                r.address ? r.address.address_name :
+                  r.place_name || "주소 미확인";
 
-          let building =
+          const building =
             (r.road_address && r.road_address.building_name) ? r.road_address.building_name :
-            (r.address && r.address.building_name) ? r.address.building_name :
-            (r.address && r.address.bname) ? r.address.bname :
-            "-";
+              (r.address && r.address.building_name) ? r.address.building_name :
+                (r.address && r.address.bname) ? r.address.bname :
+                  "-";
 
-          let zip = getZip(r);
+          const zip = getZip(r);
 
           if (!used.has(full)) {
             used.add(full);
 
-            let row = document.createElement("div");
+            const row = document.createElement("div");
             row.className =
-              "resultRow flex justify-between items-start px-4 py-3 border-t border-slate-100 text-sm sm:text-base cursor-pointer hover:bg-slate-50 transition-colors";
+              "flex justify-between items-start gap-3 px-4 py-3 border-t border-white/5 cursor-pointer " +
+              "hover:bg-white/5 active:bg-white/10 transition-colors";
 
             row.innerHTML = `
-              <div class="pr-3">
-                <div class="font-medium text-slate-900">${full}</div>
-                <div class="mt-1 text-xs sm:text-sm text-slate-500">
+              <div class="min-w-0">
+                <div class="font-semibold text-slate-100 text-sm sm:text-base truncate">
+                  ${full}
+                </div>
+                <div class="mt-1 text-xs sm:text-sm text-slate-400 truncate">
                   ${building !== "-" ? "🏢 " + building : ""}
                 </div>
               </div>
-              <div class="text-right text-sm sm:text-base text-slate-700">${zip}</div>
+              <div class="shrink-0 text-right text-xs sm:text-sm text-slate-300 font-semibold">
+                ${zip}
+              </div>
             `;
 
             row.onclick = function () { selectAddress(r); };
@@ -263,42 +270,43 @@
         });
       }
 
-      window.selectAddress = function(r) {
+      window.selectAddress = function (r) {
 
         document.getElementById("resultBox").classList.add("hidden");
 
-        let address =
+        const address =
           r.road_address ? r.road_address.address_name :
-          r.address_name ? r.address_name :
-          r.address ? r.address.address_name :
-          "주소 정보 없음";
+            r.address_name ? r.address_name :
+              r.address ? r.address.address_name :
+                "주소 정보 없음";
 
-        let key1 = normalizeText(address);
-        let key2 = extractBuildingNameFromResult(r);
+        const key1 = normalizeText(address);
+        const key2 = extractBuildingNameFromResult(r);
 
-        let heatType =
+        const heatType =
           heatAddrDB[key1] ||
           heatAddrDB[key2] ||
           "정보없음";
 
-        let color = getColor(heatType);
-
-        let info = document.getElementById("infoBox");
+        const info = document.getElementById("infoBox");
         info.classList.remove("hidden");
 
         if (heatType === "정보없음") {
           info.className =
-            "mt-3 px-4 py-4 text-xl sm:text-2xl font-bold rounded-2xl bg-slate-900 text-white";
+            "mt-4 px-5 py-4 text-lg sm:text-2xl font-extrabold rounded-2xl " +
+            "bg-amber-500/10 border border-amber-400/20 text-slate-100";
           info.innerHTML =
-            `해당 지역은 <span class="text-amber-300">정보가 없는 지역</span>입니다.`;
+            `해당 지역은 <span class="text-amber-300 underline underline-offset-4">정보가 없는 지역</span>입니다.`;
         } else {
+          const accent = getAccentClass(heatType);
           info.className =
-            "mt-3 px-4 py-4 text-xl sm:text-2xl font-bold rounded-2xl bg-blue-50 text-slate-900";
+            "mt-4 px-5 py-4 text-lg sm:text-2xl font-extrabold rounded-2xl " +
+            "bg-indigo-500/10 border border-indigo-300/20 text-slate-100";
           info.innerHTML =
-            `해당 지역은 <span style="color:${color}; text-decoration:underline;">${heatType}</span> 설치지역입니다.`;
+            `해당 지역은 <span class="${accent} underline underline-offset-4">${heatType}</span> 설치지역입니다.`;
         }
 
-        let coords = new kakao.maps.LatLng(r.y, r.x);
+        const coords = new kakao.maps.LatLng(r.y, r.x);
         map.setCenter(coords);
         map.setLevel(5);
 
@@ -312,53 +320,15 @@
 
         clearOverlays();
 
-        let marker = new kakao.maps.Marker({ position: coords });
+        const marker = new kakao.maps.Marker({ position: coords });
         marker.setMap(map);
         currentOverlays.push(marker);
       };
 
-      window.filterType = function(type, btnElement) {
-
-        if (allPoints.length === 0) {
-          alert("먼저 주소를 검색해서 데이터를 쌓아주세요.");
-          return;
-        }
-
-        // 버튼 active 스타일 토글
-        let btns = document.querySelectorAll(".filterBtn");
-        btns.forEach(b => {
-          b.classList.remove("border-blue-600", "bg-blue-50");
-          b.classList.add("border-slate-300", "bg-white");
-        });
-
-        if (btnElement) {
-          btnElement.classList.remove("border-slate-300", "bg-white");
-          btnElement.classList.add("border-blue-600", "bg-blue-50");
-        }
-
-        clearOverlays();
-
-        let bounds = new kakao.maps.LatLngBounds();
-        let hasAny = false;
-
-        allPoints
-          .filter(p => p.type === type)
-          .forEach(p => {
-            hasAny = true;
-            let pos = new kakao.maps.LatLng(p.lat, p.lng);
-            bounds.extend(pos);
-
-            let marker = new kakao.maps.Marker({ position: pos });
-            marker.setMap(map);
-            currentOverlays.push(marker);
-          });
-
-        if (!hasAny) {
-          alert(type + " 데이터가 아직 없습니다.");
-          return;
-        }
-
-        map.setBounds(bounds);
+      // ✅ 요청사항: 필터 버튼 제거 → filterType 함수도 더 이상 UI에서 호출되지 않지만,
+      // 혹시 코드 다른 곳에서 호출할 가능성을 위해 남겨두고, 호출 시 안내만 띄우도록 안전 처리
+      window.filterType = function () {
+        alert("필터 버튼은 UI에서 제거되었습니다.");
       };
 
     });
