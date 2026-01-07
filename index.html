@@ -85,7 +85,7 @@
             <div id="resultHeader"
               class="flex justify-between items-center px-4 py-3 bg-white/5 text-xs sm:text-sm font-semibold text-slate-300">
               <span>주소</span>
-              <span class="flex items-center gap-2 text-slate-400 whitespace-nowrap">
+              <span class="flex items-center gap-1 text-slate-400">
                 <span class="hidden sm:inline">우편번호</span>
                 <span title="클릭하여 선택">🖱️</span>
               </span>
@@ -136,9 +136,11 @@
       const places = new kakao.maps.services.Places();
 
       let currentOverlays = [];
-      let allPoints = [];
+      let allPoints = []; // 누적 저장 (향후 확장용)
 
-      // 🔹 DB 예시
+      // 🔹 설치 여부 DB (예시)
+      // - 운영 시 normalizeText 규칙에 맞춘 키 사용 권장
+      // - 여기서는 기존 구조(난방유형) 유지하되, 안내 문구는 "콘덴싱 설치 여부" 중심으로 표현
       const heatAddrDB = {
         "헬리오시티": "지역난방",
         "래미안퍼스티지": "지역난방",
@@ -147,7 +149,9 @@
 
       function normalizeText(t) {
         if (!t) return "";
-        return t.toString().trim()
+        return t
+          .toString()
+          .trim()
           .replace(/\s+/g, "")
           .replace(/-/g, "")
           .replace(/[^\uAC00-\uD7A3a-zA-Z0-9]/g, "")
@@ -162,6 +166,15 @@
         return normalizeText(name);
       }
 
+      // 콘덴싱 설치여부/표기 색상
+      function getAccentClass(type) {
+        if (type === "콘덴싱보일러") return "text-emerald-300";
+        if (type === "일반형보일러") return "text-rose-300";
+        if (type === "중앙난방") return "text-slate-300";
+        if (type === "지역난방") return "text-slate-300";
+        return "text-amber-300";
+      }
+
       function showError(msg) {
         const box = document.getElementById("errorBox");
         box.classList.remove("hidden");
@@ -174,6 +187,7 @@
       }
 
       window.searchAddress = function () {
+
         document.getElementById("errorBox").classList.add("hidden");
 
         const keyword = document.getElementById("addr").value.trim();
@@ -183,11 +197,13 @@
         }
 
         geocoder.addressSearch(keyword, function (result, status) {
+
           if (status === kakao.maps.services.Status.OK) {
             showResult(result);
             return;
           }
 
+          // 도로명 검색 안되면 키워드 검색
           places.keywordSearch(keyword, function (res, stat) {
             if (stat === kakao.maps.services.Status.OK) {
               showResult(res);
@@ -200,101 +216,78 @@
 
       function getZip(r) {
         return (r.road_address && r.road_address.zone_no) ? r.road_address.zone_no :
-               (r.zone_no) ? r.zone_no :
-               (r.address && r.address.zip_code) ? r.address.zip_code :
-               "미확인";
+          (r.zone_no) ? r.zone_no :
+            (r.address && r.address.zip_code) ? r.address.zip_code :
+              "미확인";
       }
 
       function showResult(result) {
-        const box  = document.getElementById("resultBox");
-        const list = document.getElementById("resultList");
 
+        const box = document.getElementById("resultBox");
+        const list = document.getElementById("resultList");
         list.innerHTML = "";
         box.classList.remove("hidden");
+
         document.getElementById("infoBox").classList.add("hidden");
 
         const used = new Set();
 
         result.forEach((r) => {
+
           const full =
             r.road_address ? r.road_address.address_name :
-            r.address_name ? r.address_name :
-            r.address ? r.address.address_name :
-            r.place_name || "주소 미확인";
+              r.address_name ? r.address_name :
+                r.address ? r.address.address_name :
+                  r.place_name || "주소 미확인";
 
           const building =
             (r.road_address && r.road_address.building_name) ? r.road_address.building_name :
-            (r.address && r.address.building_name) ? r.address.building_name :
-            (r.address && r.address.bname) ? r.address.bname :
-            "-";
+              (r.address && r.address.building_name) ? r.address.building_name :
+                (r.address && r.address.bname) ? r.address.bname :
+                  "-";
 
           const zip = getZip(r);
 
-          if (used.has(full)) return;
-          used.add(full);
+          if (!used.has(full)) {
+            used.add(full);
 
-          const row = document.createElement("div");
-          row.className =
-            "flex items-start gap-3 px-4 py-3 border-t border-white/5 cursor-pointer " +
-            "hover:bg-white/5 active:bg-white/10 transition-colors";
+            const row = document.createElement("div");
+            row.className =
+              "flex justify-between items-start gap-3 px-4 py-3 border-t border-white/5 cursor-pointer " +
+              "hover:bg-white/5 active:bg-white/10 transition-colors";
 
-          // ✅ 핵심: 우편번호가 아래로 안 짤리도록
-          // - 오른쪽 영역을 shrink-0 + whitespace-nowrap로 고정
-          // - 왼쪽(주소)은 flex-1로 두고 줄바꿈 허용
-          row.innerHTML = `
-            <div class="flex-1 min-w-0">
-              <div class="flex items-start gap-2">
+            row.innerHTML = `
+              <div class="min-w-0 flex items-start gap-2">
                 <div class="pt-0.5 text-slate-400" aria-hidden="true">👉</div>
                 <div class="min-w-0">
-                  <div class="font-semibold text-slate-100 text-sm sm:text-base break-words">
+                  <div class="font-semibold text-slate-100 text-sm sm:text-base truncate">
                     ${full}
                   </div>
-                  <div class="mt-1 text-xs sm:text-sm text-slate-400 break-words">
+                  <div class="mt-1 text-xs sm:text-sm text-slate-400 truncate">
                     ${building !== "-" ? "🏢 " + building : ""}
                   </div>
                 </div>
               </div>
-            </div>
-
-            <div class="shrink-0 whitespace-nowrap flex items-center gap-2">
-              <span class="px-2 py-1 rounded-full bg-white/5 border border-white/10 text-xs sm:text-sm font-semibold text-slate-200">
+              <div class="shrink-0 text-right text-xs sm:text-sm text-slate-300 font-semibold">
                 ${zip}
-              </span>
+              </div>
+            `;
 
-              <!-- ✅ '선택' 버튼 작게 -->
-              <button
-                class="selectBtn px-2 py-1 rounded-full bg-indigo-500/20 border border-indigo-300/20
-                       text-xs font-bold text-indigo-100 hover:bg-indigo-500/30 active:bg-indigo-500/40 transition-colors"
-                type="button"
-                title="이 주소 선택"
-              >
-                ✅ 선택
-              </button>
-            </div>
-          `;
-
-          // 행 클릭도 선택되게
-          row.onclick = function () { selectAddress(r); };
-
-          // 버튼 클릭도 선택되게 (행 클릭과 중복 방지)
-          const btn = row.querySelector(".selectBtn");
-          btn.onclick = function (e) {
-            e.stopPropagation();
-            selectAddress(r);
-          };
-
-          list.appendChild(row);
+            row.onclick = function () { selectAddress(r); };
+            list.appendChild(row);
+          }
         });
       }
 
       window.selectAddress = function (r) {
+
         document.getElementById("resultBox").classList.add("hidden");
 
         const address =
           r.road_address ? r.road_address.address_name :
-          r.address_name ? r.address_name :
-          r.address ? r.address.address_name :
-          "주소 정보 없음";
+            r.address_name ? r.address_name :
+              r.address ? r.address.address_name :
+                "주소 정보 없음";
 
         const key1 = normalizeText(address);
         const key2 = extractBuildingNameFromResult(r);
@@ -307,6 +300,9 @@
         const info = document.getElementById("infoBox");
         info.classList.remove("hidden");
 
+        // ✅ "콘덴싱 설치 여부" 중심으로 표현
+        // - DB 값이 '콘덴싱보일러'면: 설치지역(가능/해당)으로 안내
+        // - 그 외(일반형/중앙/지역)는: 콘덴싱 설치지역 아님(또는 해당 정보 기준으로 안내)
         if (heatType === "정보없음") {
           info.className =
             "mt-4 px-5 py-4 text-lg sm:text-2xl font-extrabold rounded-2xl " +
@@ -320,11 +316,12 @@
           info.innerHTML =
             `해당 지역은 <span class="text-emerald-300 underline underline-offset-4">콘덴싱 설치 지역</span>입니다.`;
         } else {
+          const accent = getAccentClass(heatType);
           info.className =
             "mt-4 px-5 py-4 text-lg sm:text-2xl font-extrabold rounded-2xl " +
             "bg-indigo-500/10 border border-indigo-300/20 text-slate-100";
           info.innerHTML =
-            `해당 지역은 <span class="text-slate-200 underline underline-offset-4">${heatType}</span> (콘덴싱 설치지역 정보 기준 아님)`;
+            `해당 지역은 <span class="${accent} underline underline-offset-4">${heatType}</span> (콘덴싱 설치지역 정보 기준 아님)`;
         }
 
         const coords = new kakao.maps.LatLng(r.y, r.x);
