@@ -46,7 +46,7 @@
 
           <!-- 서브텍스트 -->
           <div class="mt-3 text-center text-sm sm:text-base text-slate-300">
-            주소를 검색하면 해당 지역 난방유형을 확인할 수 있습니다.
+            ※ 주소검색을 통해 콘덴싱보일러 설치여부 확인 가능
           </div>
 
           <!-- 검색 박스 -->
@@ -85,15 +85,14 @@
             class="mt-4 px-4 py-3 text-sm sm:text-base rounded-2xl border border-rose-400/40 bg-rose-500/10 text-rose-200 hidden">
           </div>
 
-          <!-- 검색 결과 리스트 -->
+          <!-- 검색 결과 리스트 (우편번호 숨김 버전) -->
           <div
             id="resultBox"
             class="mt-4 rounded-2xl border border-white/10 bg-slate-900/40 overflow-hidden hidden">
 
             <div id="resultHeader"
-              class="grid grid-cols-12 gap-3 items-center px-4 py-3 bg-white/5 text-xs sm:text-sm font-semibold text-slate-300">
+              class="grid grid-cols-10 gap-3 items-center px-4 py-3 bg-white/5 text-xs sm:text-sm font-semibold text-slate-300">
               <div class="col-span-8">주소</div>
-              <div class="col-span-2 text-right">우편번호</div>
               <div class="col-span-2 text-right">선택</div>
             </div>
 
@@ -218,13 +217,6 @@
         });
       };
 
-      function getZip(r) {
-        return (r.road_address && r.road_address.zone_no) ? r.road_address.zone_no :
-          (r.zone_no) ? r.zone_no :
-            (r.address && r.address.zip_code) ? r.address.zip_code :
-              "미확인";
-      }
-
       function getFullAddress(r) {
         return r.road_address ? r.road_address.address_name :
           r.address_name ? r.address_name :
@@ -256,17 +248,16 @@
 
           const full = getFullAddress(r);
           const building = getBuildingLabel(r);
-          const zip = getZip(r);
 
           if (!used.has(full)) {
             used.add(full);
 
             const row = document.createElement("div");
             row.className =
-              "grid grid-cols-12 gap-3 items-start px-4 py-3 border-t border-white/5 " +
+              "grid grid-cols-10 gap-3 items-start px-4 py-3 border-t border-white/5 " +
               "hover:bg-white/5 transition-colors";
 
-            // 주소영역(클릭해도 선택되게 유지) + 선택버튼(명시적 선택)
+            // ✅ 우편번호 칸 제거 (주소 8칸 + 선택 2칸)
             row.innerHTML = `
               <div class="col-span-8 min-w-0 cursor-pointer">
                 <div class="font-semibold text-slate-100 text-sm sm:text-base truncate">
@@ -275,10 +266,6 @@
                 <div class="mt-1 text-xs sm:text-sm text-slate-400 truncate">
                   ${building !== "-" ? "🏢 " + building : ""}
                 </div>
-              </div>
-
-              <div class="col-span-2 text-right text-xs sm:text-sm text-slate-300 font-semibold pt-0.5">
-                ${zip}
               </div>
 
               <div class="col-span-2 flex justify-end">
@@ -302,9 +289,6 @@
               e.stopPropagation();
               selectAddress(r);
             };
-
-            // row 전체 클릭도 선택되게 하고 싶으면 아래 주석 해제
-            // row.onclick = function(){ selectAddress(r); };
 
             list.appendChild(row);
           }
