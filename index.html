@@ -39,9 +39,9 @@
             서울시 공동주택 콘덴싱 보일러 설치 맵
           </header>
 
-          <!-- 서브텍스트 (요청 문구 변경) -->
+          <!-- 서브텍스트 -->
           <div class="mt-2 text-center text-sm sm:text-base text-slate-300">
-            주소를 검색하시면 콘덴싱 설치 여부를 확인할 수 있습니다.
+            주소를 검색하면 해당 지역 난방유형을 확인할 수 있습니다.
           </div>
 
           <!-- 검색 박스 -->
@@ -63,11 +63,10 @@
               </button>
             </div>
 
-            <!-- 클릭 유도 아이콘 (문구 대신) -->
-            <div class="mt-3 flex justify-center gap-2 text-xs text-slate-400">
-              <span class="px-2 py-1 rounded-full bg-white/5 border border-white/10" title="아래 목록 확인">👇</span>
-              <span class="px-2 py-1 rounded-full bg-white/5 border border-white/10" title="클릭하여 선택">🖱️</span>
-              <span class="px-2 py-1 rounded-full bg-white/5 border border-white/10" title="항목을 눌러 선택">👉</span>
+            <!-- 힌트 배지 -->
+            <div class="mt-3 flex flex-wrap justify-center gap-2 text-xs sm:text-sm">
+              <span class="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-slate-300">도로명/지번/건물명 가능</span>
+              <span class="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-slate-300">검색 후 목록에서 주소를 선택하세요</span>
             </div>
           </div>
 
@@ -85,16 +84,13 @@
             <div id="resultHeader"
               class="flex justify-between items-center px-4 py-3 bg-white/5 text-xs sm:text-sm font-semibold text-slate-300">
               <span>주소</span>
-              <span class="flex items-center gap-1 text-slate-400">
-                <span class="hidden sm:inline">우편번호</span>
-                <span title="클릭하여 선택">🖱️</span>
-              </span>
+              <span>우편번호</span>
             </div>
 
             <div id="resultList"></div>
           </div>
 
-          <!-- 콘덴싱 설치 여부 안내 -->
+          <!-- 난방유형 안내 -->
           <div
             id="infoBox"
             class="mt-4 px-5 py-4 text-lg sm:text-2xl font-extrabold rounded-2xl hidden">
@@ -138,9 +134,8 @@
       let currentOverlays = [];
       let allPoints = []; // 누적 저장 (향후 확장용)
 
-      // 🔹 설치 여부 DB (예시)
-      // - 운영 시 normalizeText 규칙에 맞춘 키 사용 권장
-      // - 여기서는 기존 구조(난방유형) 유지하되, 안내 문구는 "콘덴싱 설치 여부" 중심으로 표현
+      // 🔹 난방유형 DB (예시)
+      // - 실제 운영 시: 주소/단지명 키를 normalizeText 규칙에 맞게 저장하는 걸 권장
       const heatAddrDB = {
         "헬리오시티": "지역난방",
         "래미안퍼스티지": "지역난방",
@@ -166,7 +161,6 @@
         return normalizeText(name);
       }
 
-      // 콘덴싱 설치여부/표기 색상
       function getAccentClass(type) {
         if (type === "콘덴싱보일러") return "text-emerald-300";
         if (type === "일반형보일러") return "text-rose-300";
@@ -257,15 +251,12 @@
               "hover:bg-white/5 active:bg-white/10 transition-colors";
 
             row.innerHTML = `
-              <div class="min-w-0 flex items-start gap-2">
-                <div class="pt-0.5 text-slate-400" aria-hidden="true">👉</div>
-                <div class="min-w-0">
-                  <div class="font-semibold text-slate-100 text-sm sm:text-base truncate">
-                    ${full}
-                  </div>
-                  <div class="mt-1 text-xs sm:text-sm text-slate-400 truncate">
-                    ${building !== "-" ? "🏢 " + building : ""}
-                  </div>
+              <div class="min-w-0">
+                <div class="font-semibold text-slate-100 text-sm sm:text-base truncate">
+                  ${full}
+                </div>
+                <div class="mt-1 text-xs sm:text-sm text-slate-400 truncate">
+                  ${building !== "-" ? "🏢 " + building : ""}
                 </div>
               </div>
               <div class="shrink-0 text-right text-xs sm:text-sm text-slate-300 font-semibold">
@@ -300,28 +291,19 @@
         const info = document.getElementById("infoBox");
         info.classList.remove("hidden");
 
-        // ✅ "콘덴싱 설치 여부" 중심으로 표현
-        // - DB 값이 '콘덴싱보일러'면: 설치지역(가능/해당)으로 안내
-        // - 그 외(일반형/중앙/지역)는: 콘덴싱 설치지역 아님(또는 해당 정보 기준으로 안내)
         if (heatType === "정보없음") {
           info.className =
             "mt-4 px-5 py-4 text-lg sm:text-2xl font-extrabold rounded-2xl " +
             "bg-amber-500/10 border border-amber-400/20 text-slate-100";
           info.innerHTML =
             `해당 지역은 <span class="text-amber-300 underline underline-offset-4">정보가 없는 지역</span>입니다.`;
-        } else if (heatType === "콘덴싱보일러") {
-          info.className =
-            "mt-4 px-5 py-4 text-lg sm:text-2xl font-extrabold rounded-2xl " +
-            "bg-emerald-500/10 border border-emerald-300/20 text-slate-100";
-          info.innerHTML =
-            `해당 지역은 <span class="text-emerald-300 underline underline-offset-4">콘덴싱 설치 지역</span>입니다.`;
         } else {
           const accent = getAccentClass(heatType);
           info.className =
             "mt-4 px-5 py-4 text-lg sm:text-2xl font-extrabold rounded-2xl " +
             "bg-indigo-500/10 border border-indigo-300/20 text-slate-100";
           info.innerHTML =
-            `해당 지역은 <span class="${accent} underline underline-offset-4">${heatType}</span> (콘덴싱 설치지역 정보 기준 아님)`;
+            `해당 지역은 <span class="${accent} underline underline-offset-4">${heatType}</span> 설치지역입니다.`;
         }
 
         const coords = new kakao.maps.LatLng(r.y, r.x);
@@ -341,6 +323,12 @@
         const marker = new kakao.maps.Marker({ position: coords });
         marker.setMap(map);
         currentOverlays.push(marker);
+      };
+
+      // ✅ 요청사항: 필터 버튼 제거 → filterType 함수도 더 이상 UI에서 호출되지 않지만,
+      // 혹시 코드 다른 곳에서 호출할 가능성을 위해 남겨두고, 호출 시 안내만 띄우도록 안전 처리
+      window.filterType = function () {
+        alert("필터 버튼은 UI에서 제거되었습니다.");
       };
 
     });
