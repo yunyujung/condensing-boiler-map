@@ -26,15 +26,13 @@
 
   <!-- 상단 패널 -->
   <div id="topPanel" class="relative">
-    <!-- 배경 그라데이션 -->
     <div class="absolute inset-0 bg-gradient-to-b from-indigo-950 via-slate-950 to-slate-950"></div>
 
     <div class="relative max-w-4xl mx-auto px-4 pt-8 pb-5">
-      <!-- 헤더 카드 -->
       <div class="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl shadow-[0_20px_60px_rgba(0,0,0,0.45)] overflow-hidden">
         <div class="px-5 sm:px-8 pt-6 sm:pt-7 pb-6 sm:pb-7">
 
-          <!-- 제목 (2줄로 분리) -->
+          <!-- 제목 -->
           <header class="text-center leading-tight">
             <div class="text-2xl sm:text-4xl font-extrabold tracking-tight">
               서울시 공동주택
@@ -44,54 +42,43 @@
             </div>
           </header>
 
-          <!-- 서브텍스트 -->
+          <!-- 설명 -->
           <div class="mt-3 text-center text-sm sm:text-base text-slate-300">
-            ※ 주소검색을 통해 콘덴싱보일러 설치여부 확인 가능
+            ※ 주소를 검색하시면 콘덴싱 설치 여부를 확인할 수 있습니다.
           </div>
 
-          <!-- 검색 박스 -->
-          <div id="searchBox" class="mt-5">
-            <div class="flex flex-col sm:flex-row gap-3">
-              <input
-                id="addr"
-                class="w-full px-4 py-3 sm:py-4 text-base sm:text-lg font-semibold text-center rounded-2xl
-                       bg-slate-900/60 border border-white/10 text-slate-100 placeholder:text-slate-400
-                       outline-none focus:ring-2 focus:ring-indigo-400/70 focus:border-indigo-300/70"
-                placeholder="주소를 입력하세요 (예: 국회대로76길22)"
-              />
-              <button
-                onclick="searchAddress()"
-                class="w-full sm:w-48 py-3 sm:py-4 text-base sm:text-lg font-bold rounded-2xl
-                       bg-indigo-500 hover:bg-indigo-400 active:bg-indigo-600
-                       text-slate-950 transition-colors shadow-lg shadow-indigo-500/20">
-                🔍 주소 검색
-              </button>
-            </div>
-
-            <!-- 힌트 배지 (문구 변경) -->
-            <div class="mt-3 flex flex-wrap justify-center gap-2 text-xs sm:text-sm">
-              <span class="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-slate-300">
-                도로명 + 건물번호 입력
-              </span>
-              <span class="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-slate-300">
-                동/읍/면/리 +번지 입력
-              </span>
-            </div>
+          <!-- 검색 -->
+          <div class="mt-5 flex flex-col sm:flex-row gap-3">
+            <input
+              id="addr"
+              class="w-full px-4 py-3 sm:py-4 text-base sm:text-lg font-semibold text-center rounded-2xl
+                     bg-slate-900/60 border border-white/10 text-slate-100
+                     placeholder:text-slate-400 outline-none
+                     focus:ring-2 focus:ring-indigo-400/70"
+              placeholder="주소를 입력하세요 (예: 국회대로76길22)"
+            />
+            <button
+              onclick="searchAddress()"
+              class="w-full sm:w-48 py-3 sm:py-4 text-base sm:text-lg font-bold rounded-2xl
+                     bg-indigo-500 hover:bg-indigo-400 active:bg-indigo-600
+                     text-slate-950 transition-colors">
+              🔍 주소 검색
+            </button>
           </div>
 
-          <!-- 에러 메시지 -->
-          <div
-            id="errorBox"
-            class="mt-4 px-4 py-3 text-sm sm:text-base rounded-2xl border border-rose-400/40 bg-rose-500/10 text-rose-200 hidden">
-          </div>
+          <!-- 에러 -->
+          <div id="errorBox"
+               class="mt-4 px-4 py-3 text-sm rounded-2xl
+                      border border-rose-400/40 bg-rose-500/10
+                      text-rose-200 hidden"></div>
 
-          <!-- 검색 결과 리스트 (우편번호 숨김 버전) -->
-          <div
-            id="resultBox"
-            class="mt-4 rounded-2xl border border-white/10 bg-slate-900/40 overflow-hidden hidden">
+          <!-- 결과 리스트 -->
+          <div id="resultBox"
+               class="mt-4 rounded-2xl border border-white/10
+                      bg-slate-900/40 overflow-hidden hidden">
 
-            <div id="resultHeader"
-              class="grid grid-cols-10 gap-3 items-center px-4 py-3 bg-white/5 text-xs sm:text-sm font-semibold text-slate-300">
+            <div class="grid grid-cols-10 gap-3 px-4 py-3 bg-white/5
+                        text-xs sm:text-sm font-semibold text-slate-300">
               <div class="col-span-8">주소</div>
               <div class="col-span-2 text-right">선택</div>
             </div>
@@ -99,11 +86,10 @@
             <div id="resultList"></div>
           </div>
 
-          <!-- 난방유형 안내 -->
-          <div
-            id="infoBox"
-            class="mt-4 px-5 py-4 text-lg sm:text-2xl font-extrabold rounded-2xl hidden">
-          </div>
+          <!-- 난방유형 -->
+          <div id="infoBox"
+               class="mt-4 px-5 py-4 text-lg sm:text-2xl
+                      font-extrabold rounded-2xl hidden"></div>
 
         </div>
       </div>
@@ -112,17 +98,20 @@
 
   <!-- 지도 영역 -->
   <div class="max-w-6xl mx-auto px-4 pb-8 -mt-2">
-    <!-- 문구가 안 짤리도록: wrap + gap + min-w-0 처리 -->
-    <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 mb-2">
-      <div class="min-w-0 text-xs sm:text-sm font-semibold text-slate-400 break-words">
+
+    <!-- ✅ 글 안 잘리게 수정된 안내 문구 -->
+    <div class="mb-3 text-center space-y-1">
+      <div class="text-xs sm:text-sm font-semibold text-slate-400 break-words">
         ※ 아래 지도는 참고용입니다
       </div>
-      <div class="text-[11px] sm:text-xs text-slate-500 whitespace-nowrap">
+      <div class="text-[11px] sm:text-xs text-slate-500 break-words">
         (마커는 선택한 주소 기준으로 표시됩니다)
       </div>
     </div>
 
-    <div class="rounded-3xl border border-white/10 bg-white/5 backdrop-blur shadow-[0_20px_60px_rgba(0,0,0,0.45)] overflow-hidden">
+    <div class="rounded-3xl border border-white/10 bg-white/5
+                backdrop-blur shadow-[0_20px_60px_rgba(0,0,0,0.45)]
+                overflow-hidden">
       <div id="map" class="w-full h-[62vh]"></div>
     </div>
   </div>
@@ -140,57 +129,27 @@
 
       const geocoder = new kakao.maps.services.Geocoder();
       const places = new kakao.maps.services.Places();
+      let markers = [];
 
-      let currentOverlays = [];
-      let allPoints = []; // 누적 저장 (향후 확장용)
-
-      // 🔹 난방유형 DB (예시)
+      // 예시 난방 DB
       const heatAddrDB = {
+        "국회대로76길22": "콘덴싱보일러",
         "헬리오시티": "지역난방",
-        "래미안퍼스티지": "지역난방",
-        "국회대로76길22": "콘덴싱보일러"
+        "래미안퍼스티지": "지역난방"
       };
 
-      function normalizeText(t) {
-        if (!t) return "";
-        return t
-          .toString()
-          .trim()
-          .replace(/\s+/g, "")
-          .replace(/-/g, "")
-          .replace(/[^\uAC00-\uD7A3a-zA-Z0-9]/g, "")
-          .toLowerCase();
-      }
-
-      function extractBuildingNameFromResult(r) {
-        let name = "";
-        if (r.road_address && r.road_address.building_name) name = r.road_address.building_name;
-        else if (r.address && r.address.building_name) name = r.address.building_name;
-        else if (r.address && r.address.bname) name = r.address.bname;
-        return normalizeText(name);
-      }
-
-      function getAccentClass(type) {
-        if (type === "콘덴싱보일러") return "text-emerald-300";
-        if (type === "일반형보일러") return "text-rose-300";
-        if (type === "중앙난방") return "text-slate-300";
-        if (type === "지역난방") return "text-slate-300";
-        return "text-amber-300";
+      function clearMarkers() {
+        markers.forEach(m => m.setMap(null));
+        markers = [];
       }
 
       function showError(msg) {
         const box = document.getElementById("errorBox");
-        box.classList.remove("hidden");
         box.textContent = msg;
-      }
-
-      function clearOverlays() {
-        currentOverlays.forEach((o) => o.setMap(null));
-        currentOverlays = [];
+        box.classList.remove("hidden");
       }
 
       window.searchAddress = function () {
-
         document.getElementById("errorBox").classList.add("hidden");
 
         const keyword = document.getElementById("addr").value.trim();
@@ -200,156 +159,80 @@
         }
 
         geocoder.addressSearch(keyword, function (result, status) {
-
           if (status === kakao.maps.services.Status.OK) {
-            showResult(result);
-            return;
+            renderResult(result);
+          } else {
+            places.keywordSearch(keyword, function (res, stat) {
+              if (stat === kakao.maps.services.Status.OK) {
+                renderResult(res);
+              } else {
+                showError("주소 검색이 실패했습니다. 주소를 다시 확인해주세요.");
+              }
+            });
           }
-
-          // 도로명 검색 안되면 키워드 검색
-          places.keywordSearch(keyword, function (res, stat) {
-            if (stat === kakao.maps.services.Status.OK) {
-              showResult(res);
-            } else {
-              showError("주소 검색이 실패했습니다. (주소/건물명/지번을 다시 확인해주세요)");
-            }
-          });
         });
       };
 
-      function getFullAddress(r) {
-        return r.road_address ? r.road_address.address_name :
-          r.address_name ? r.address_name :
-            r.address ? r.address.address_name :
-              r.place_name || "주소 미확인";
-      }
-
-      function getBuildingLabel(r) {
-        const building =
-          (r.road_address && r.road_address.building_name) ? r.road_address.building_name :
-            (r.address && r.address.building_name) ? r.address.building_name :
-              (r.address && r.address.bname) ? r.address.bname :
-                "-";
-        return building;
-      }
-
-      function showResult(result) {
-
+      function renderResult(result) {
         const box = document.getElementById("resultBox");
         const list = document.getElementById("resultList");
         list.innerHTML = "";
         box.classList.remove("hidden");
 
-        document.getElementById("infoBox").classList.add("hidden");
+        result.forEach(r => {
+          const row = document.createElement("div");
+          row.className =
+            "grid grid-cols-10 gap-3 px-4 py-3 border-t border-white/5 hover:bg-white/5";
 
-        const used = new Set();
+          row.innerHTML = `
+            <div class="col-span-8 text-sm sm:text-base cursor-pointer">
+              ${r.address_name || r.place_name}
+            </div>
+            <div class="col-span-2 text-right">
+              <button class="px-3 py-1.5 text-xs font-bold rounded-xl
+                             bg-indigo-500 hover:bg-indigo-400 text-slate-950">
+                선택
+              </button>
+            </div>
+          `;
 
-        result.forEach((r) => {
+          row.querySelector("button").onclick = () => selectAddress(r);
+          row.children[0].onclick = () => selectAddress(r);
 
-          const full = getFullAddress(r);
-          const building = getBuildingLabel(r);
-
-          if (!used.has(full)) {
-            used.add(full);
-
-            const row = document.createElement("div");
-            row.className =
-              "grid grid-cols-10 gap-3 items-start px-4 py-3 border-t border-white/5 " +
-              "hover:bg-white/5 transition-colors";
-
-            // ✅ 우편번호 칸 제거 (주소 8칸 + 선택 2칸)
-            row.innerHTML = `
-              <div class="col-span-8 min-w-0 cursor-pointer">
-                <div class="font-semibold text-slate-100 text-sm sm:text-base truncate">
-                  ${full}
-                </div>
-                <div class="mt-1 text-xs sm:text-sm text-slate-400 truncate">
-                  ${building !== "-" ? "🏢 " + building : ""}
-                </div>
-              </div>
-
-              <div class="col-span-2 flex justify-end">
-                <button
-                  type="button"
-                  class="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-extrabold rounded-xl
-                         bg-indigo-500 hover:bg-indigo-400 active:bg-indigo-600
-                         text-slate-950 transition-colors shadow shadow-indigo-500/20">
-                  선택
-                </button>
-              </div>
-            `;
-
-            // 주소영역 클릭 시 선택
-            const leftArea = row.children[0];
-            leftArea.onclick = function () { selectAddress(r); };
-
-            // 버튼 클릭 시 선택
-            const btn = row.querySelector("button");
-            btn.onclick = function (e) {
-              e.stopPropagation();
-              selectAddress(r);
-            };
-
-            list.appendChild(row);
-          }
+          list.appendChild(row);
         });
       }
 
-      window.selectAddress = function (r) {
-
+      function selectAddress(r) {
         document.getElementById("resultBox").classList.add("hidden");
 
-        const address = getFullAddress(r);
-
-        const key1 = normalizeText(address);
-        const key2 = extractBuildingNameFromResult(r);
-
-        const heatType =
-          heatAddrDB[key1] ||
-          heatAddrDB[key2] ||
-          "정보없음";
+        const addr = r.address_name || r.place_name;
+        const heat = heatAddrDB[addr] || "정보없음";
 
         const info = document.getElementById("infoBox");
         info.classList.remove("hidden");
 
-        if (heatType === "정보없음") {
+        if (heat === "정보없음") {
           info.className =
             "mt-4 px-5 py-4 text-lg sm:text-2xl font-extrabold rounded-2xl " +
-            "bg-amber-500/10 border border-amber-400/20 text-slate-100";
-          info.innerHTML =
-            `해당 지역은 <span class="text-amber-300 underline underline-offset-4">정보가 없는 지역</span>입니다.`;
+            "bg-amber-500/10 border border-amber-400/20";
+          info.innerHTML = `해당 지역은 <span class="text-amber-300">정보가 없는 지역</span>입니다.`;
         } else {
-          const accent = getAccentClass(heatType);
           info.className =
             "mt-4 px-5 py-4 text-lg sm:text-2xl font-extrabold rounded-2xl " +
-            "bg-indigo-500/10 border border-indigo-300/20 text-slate-100";
-          info.innerHTML =
-            `해당 지역은 <span class="${accent} underline underline-offset-4">${heatType}</span> 설치지역입니다.`;
+            "bg-indigo-500/10 border border-indigo-300/20";
+          info.innerHTML = `해당 지역은 <span class="underline">${heat}</span> 설치지역입니다.`;
         }
 
-        const coords = new kakao.maps.LatLng(r.y, r.x);
-        map.setCenter(coords);
-        map.setLevel(5);
-
-        if (heatType !== "정보없음") {
-          allPoints.push({
-            lat: parseFloat(r.y),
-            lng: parseFloat(r.x),
-            type: heatType
-          });
-        }
-
-        clearOverlays();
-
-        const marker = new kakao.maps.Marker({ position: coords });
+        clearMarkers();
+        const pos = new kakao.maps.LatLng(r.y, r.x);
+        const marker = new kakao.maps.Marker({ position: pos });
         marker.setMap(map);
-        currentOverlays.push(marker);
-      };
+        markers.push(marker);
 
-      // (안전 처리 유지)
-      window.filterType = function () {
-        alert("필터 버튼은 UI에서 제거되었습니다.");
-      };
+        map.setCenter(pos);
+        map.setLevel(5);
+      }
 
     });
   </script>
