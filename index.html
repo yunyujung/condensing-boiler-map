@@ -51,8 +51,7 @@
             <input
               id="addr"
               class="w-full px-4 py-3 sm:py-4 text-base sm:text-lg font-semibold text-center rounded-2xl
-                     bg-slate-900/60 borderნი
-                     border border-white/10 text-slate-100
+                     bg-slate-900/60 border border-white/10 text-slate-100
                      placeholder:text-slate-400 outline-none
                      focus:ring-2 focus:ring-indigo-400/70"
               placeholder="주소를 입력하세요 (예: 국회대로76길22)"
@@ -128,83 +127,116 @@
     const SUPABASE_ANON_KEY = "sb_publishable_vRdnw-7IoqBST-wvBCV6eA_2635Pdvx";
 
     /**********************************************************************
-     * ✅ 주소 정규화: "서울특별시"/"서울시" → "서울", 괄호 제거, 공백 정리
+     * ✅ 주소 정규화 (괄호 제거 / 공백 정리)
      **********************************************************************/
     function normalizeAddr(s) {
       if (!s) return "";
-      let t = String(s)
-        .replace(/\(.*?\)/g, "")       // 괄호 제거
+      return String(s)
+        .replace(/\(.*?\)/g, "")
         .replace(/[\t\r\n]/g, " ")
         .replace(/\s+/g, " ")
         .trim();
-
-      // 앞부분 표기 통일
-      t = t.replace(/^서울특별시\s*/,"서울 ")
-           .replace(/^서울시\s*/,"서울 ");
-
-      return t;
     }
 
     /**********************************************************************
-     * ✅ Supabase 조회: "CSV에 존재하면 콘덴싱", 없으면 정보없음
-     *   - 테이블: addr_map
-     *   - 컬럼: addr_key (PK)  ← addr_key만 있어도 동작함
+     * ✅ 카카오 검색 결과에서 "지번주소/도로명주소" 후보를 만들고,
+     *    "서울특별시/서울시/서울" 표기 흔들림을 모두 커버
      **********************************************************************/
-    const heatCache = new Map(); // 성공 결과만 캐시
+    function buildKeyCandidatesFromKakao(r) {
+      const cands = [];
 
-    async function fetchHeatFromSupabase(addr) {
-      const key1 = normalizeAddr(addr);
-      if (!key1) return "정보없음";
+      // 지번(동/번지) 주소: r.address.address_name
+      if (r.address && r.address.address_name) cands.push(r.address.address_name);
 
-      if (heatCache.has(key1)) return heatCache.get(key1);
+      // 도로명 주소: r.road_address.address_name
+      if (r.road_address && r.road_address.address_name) cands.push(r.road_address.address_name);
 
-      async function existsInDb(key) {
-        const url =
-          `${SUPABASE_URL}/rest/v1/addr_map` +
-          `?addr_key=eq.${encodeURIComponent(key)}` +
-          `&select=addr_key` +
-          `&limit=1`;
+      // fallback: r.address_name
+      if (r.address_name) cands.push(r.address_name);
 
-        const res = await fetch(url, {
-          method: "GET",
-          headers: {
-            "apikey": SUPABASE_ANON_KEY,
-            "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
-            "Accept": "application/json"
-          }
-        });
+      const norm = cands.map(normalizeAddr).filter(Boolean);
+      return [...new Set(norm)];
+    }
 
-        if (!res.ok) {
-          console.error("Supabase fetch failed:", res.status, await res.text());
-          return false;
-        }
+    function expandSeoulVariants(key) {
+      const v = [key];
 
-        const data = await res.json();
-        return Array.isArray(data) && data.length > 0;
+      if (key.startsWith("서울특별시 ")) {
+        v.push(key.replace(/^서울특별시\s+/, "서울 "));
+        v.push(key.replace(/^서울특별시\s+/, "서울시 "));
+      }
+      if (key.startsWith("서울시 ")) {
+        v.push(key.replace(/^서울시\s+/, "서울 "));
+        v.push(key.replace(/^서울시\s+/, "서울특별시 "));
+      }
+      if (key.startsWith("서울 ")) {
+        v.push(key.replace(/^서울\s+/, "서울특별시 "));
+        v.push(key.replace(/^서울\s+/, "서울시 "));
       }
 
-      try {
-        // 1차 조회: normalize한 key로
-        if (await existsInDb(key1)) {
-          heatCache.set(key1, "콘덴싱보일러");
-          return "콘덴싱보일러";
-        }
+      return [...new Set(v.map(normalizeAddr).filter(Boolean))];
+    }
 
-        // 2차 조회(선택): "서울 " 제거 버전도 한번 더 조회
-        // - CSV에 '영등포구 ...' 형태로 들어가 있을 때 보정
-        const key2 = key1.replace(/^서울\s*/,"").trim();
-        if (key2 && key2 !== key1) {
-          if (await existsInDb(key2)) {
-            heatCache.set(key1, "콘덴싱보일러");
+    /**********************************************************************
+     * ✅ Supabase 조회: addr_key가 존재하면 "콘덴싱보일러"
+     *    - 테이블: addr_map
+     *    - 컬럼: addr_key
+     **********************************************************************/
+    const heatCache = new Map(); // 성공만 캐시
+
+    async function existsInDb(key) {
+      const url =
+        `${SUPABASE_URL}/rest/v1/addr_map` +
+        `?addr_key=eq.${encodeURIComponent(key)}` +
+        `&select=addr_key` +
+        `&limit=1`;
+
+      const res = await fetch(url, {
+        method: "GET",
+        headers: {
+          "apikey": SUPABASE_ANON_KEY,
+          "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+          "Accept": "application/json"
+        }
+      });
+
+      // res.json()에서 터지는 경우가 있어서 text -> JSON.parse로 안전하게 처리
+      const text = await res.text();
+      if (!res.ok) {
+        console.error("Supabase error:", res.status, text);
+        return false;
+      }
+
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        console.error("Supabase JSON parse error:", e, text);
+        return false;
+      }
+
+      return Array.isArray(data) && data.length > 0;
+    }
+
+    async function fetchHeatFromSupabaseByKakaoResult(r) {
+      const baseKeys = buildKeyCandidatesFromKakao(r);
+      if (baseKeys.length === 0) return "정보없음";
+
+      for (const base of baseKeys) {
+        const variants = expandSeoulVariants(base);
+
+        for (const key of variants) {
+          if (heatCache.has(key)) return heatCache.get(key);
+
+          const ok = await existsInDb(key);
+          if (ok) {
+            heatCache.set(key, "콘덴싱보일러");
             return "콘덴싱보일러";
           }
         }
-
-        return "정보없음";
-      } catch (e) {
-        console.error("Supabase error:", e);
-        return "정보없음";
       }
+
+      return "정보없음";
     }
 
     kakao.maps.load(function () {
@@ -282,10 +314,8 @@
       async function selectAddress(r) {
         document.getElementById("resultBox").classList.add("hidden");
 
-        const addr = r.address_name || r.place_name;
-
-        // ✅ Supabase 조회
-        const heat = await fetchHeatFromSupabase(addr);
+        // ✅ 카카오 결과 r를 그대로 넘겨서 (지번/도로명/서울표기 변형까지) 조회
+        const heat = await fetchHeatFromSupabaseByKakaoResult(r);
 
         const info = document.getElementById("infoBox");
         info.classList.remove("hidden");
@@ -301,6 +331,7 @@
             ? `해당 지역은 <span class="text-amber-300">정보가 없는 지역</span>입니다.`
             : `해당 지역은 <span class="underline">콘덴싱보일러</span> 설치지역입니다.`;
 
+        // 지도 마커
         clearMarkers();
         const pos = new kakao.maps.LatLng(r.y, r.x);
         const marker = new kakao.maps.Marker({ position: pos });
