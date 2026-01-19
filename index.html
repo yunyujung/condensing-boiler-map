@@ -51,7 +51,8 @@
             <input
               id="addr"
               class="w-full px-4 py-3 sm:py-4 text-base sm:text-lg font-semibold text-center rounded-2xl
-                     bg-slate-900/60 border border-white/10 text-slate-100
+                     bg-slate-900/60 borderნი
+                     border border-white/10 text-slate-100
                      placeholder:text-slate-400 outline-none
                      focus:ring-2 focus:ring-indigo-400/70"
               placeholder="주소를 입력하세요 (예: 국회대로76길22)"
@@ -121,43 +122,49 @@
 
   <script>
     /**********************************************************************
-     * ✅ 1) 여기 2개만 너 Supabase 값으로 바꿔줘
+     * ✅ Supabase 설정 (너 프로젝트 값)
      **********************************************************************/
-    const SUPABASE_URL = "https://ejiocupbmoyqziaziiya.supabase.co"; // ← 너 프로젝트 URL
-    const SUPABASE_ANON_KEY = "sb_publishable_vRdnw-7IoqBST-wvBCV6eA_2635Pdvx";          // ← anon public key
+    const SUPABASE_URL = "https://ejiocupbmoyqziaziiya.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_vRdnw-7IoqBST-wvBCV6eA_2635Pdvx";
 
     /**********************************************************************
-     * ✅ 2) 주소 키 정규화(엑셀/DB 만들 때랑 규칙을 맞추는 게 핵심)
-     *    - 최소 정규화: 괄호 제거, 공백 정리
+     * ✅ 주소 정규화: "서울특별시"/"서울시" → "서울", 괄호 제거, 공백 정리
      **********************************************************************/
     function normalizeAddr(s) {
       if (!s) return "";
-      return String(s)
-        .replace(/\(.*?\)/g, "")      // 괄호 제거
+      let t = String(s)
+        .replace(/\(.*?\)/g, "")       // 괄호 제거
         .replace(/[\t\r\n]/g, " ")
         .replace(/\s+/g, " ")
         .trim();
+
+      // 앞부분 표기 통일
+      t = t.replace(/^서울특별시\s*/,"서울 ")
+           .replace(/^서울시\s*/,"서울 ");
+
+      return t;
     }
 
     /**********************************************************************
-     * ✅ 3) Supabase에서 addr_key로 result 가져오기
-     *    - 테이블: addr_map
-     *    - 컬럼: addr_key (PK), result
+     * ✅ Supabase 조회: "CSV에 존재하면 콘덴싱", 없으면 정보없음
+     *   - 테이블: addr_map
+     *   - 컬럼: addr_key (PK)  ← addr_key만 있어도 동작함
      **********************************************************************/
-    const heatCache = new Map(); // 동일 주소 재조회 방지(속도/트래픽 절약)
+    const heatCache = new Map(); // 성공 결과만 캐시
 
     async function fetchHeatFromSupabase(addr) {
-      const key = normalizeAddr(addr);
-      if (!key) return "정보없음";
+      const key1 = normalizeAddr(addr);
+      if (!key1) return "정보없음";
 
-      // REST endpoint: /rest/v1/<table>?addr_key=eq.<value>&select=result
-      const url =
-        `${SUPABASE_URL}/rest/v1/addr_map` +
-        `?addr_key=eq.${encodeURIComponent(key)}` +
-        `&select=result` +
-        `&limit=1`;
+      if (heatCache.has(key1)) return heatCache.get(key1);
 
-      try {
+      async function existsInDb(key) {
+        const url =
+          `${SUPABASE_URL}/rest/v1/addr_map` +
+          `?addr_key=eq.${encodeURIComponent(key)}` +
+          `&select=addr_key` +
+          `&limit=1`;
+
         const res = await fetch(url, {
           method: "GET",
           headers: {
@@ -169,16 +176,31 @@
 
         if (!res.ok) {
           console.error("Supabase fetch failed:", res.status, await res.text());
-          return "정보없음";
+          return false;
         }
 
         const data = await res.json();
-        const result = (Array.isArray(data) && data.length > 0 && data[0].result)
-          ? data[0].result
-          : "정보없음";
+        return Array.isArray(data) && data.length > 0;
+      }
 
-        heatCache.set(key, result);
-        return result;
+      try {
+        // 1차 조회: normalize한 key로
+        if (await existsInDb(key1)) {
+          heatCache.set(key1, "콘덴싱보일러");
+          return "콘덴싱보일러";
+        }
+
+        // 2차 조회(선택): "서울 " 제거 버전도 한번 더 조회
+        // - CSV에 '영등포구 ...' 형태로 들어가 있을 때 보정
+        const key2 = key1.replace(/^서울\s*/,"").trim();
+        if (key2 && key2 !== key1) {
+          if (await existsInDb(key2)) {
+            heatCache.set(key1, "콘덴싱보일러");
+            return "콘덴싱보일러";
+          }
+        }
+
+        return "정보없음";
       } catch (e) {
         console.error("Supabase error:", e);
         return "정보없음";
@@ -262,13 +284,12 @@
 
         const addr = r.address_name || r.place_name;
 
-        // ✅ Supabase 조회로 변경
+        // ✅ Supabase 조회
         const heat = await fetchHeatFromSupabase(addr);
 
         const info = document.getElementById("infoBox");
         info.classList.remove("hidden");
 
-        // 조회 중 느낌을 주고 싶으면 로딩 문구도 추가 가능(원하면 넣어줄게)
         info.className =
           "mt-4 px-5 py-4 text-lg sm:text-2xl font-extrabold rounded-2xl " +
           (heat === "정보없음"
@@ -278,9 +299,8 @@
         info.innerHTML =
           heat === "정보없음"
             ? `해당 지역은 <span class="text-amber-300">정보가 없는 지역</span>입니다.`
-            : `해당 지역은 <span class="underline">${heat}</span> 설치지역입니다.`;
+            : `해당 지역은 <span class="underline">콘덴싱보일러</span> 설치지역입니다.`;
 
-        // 지도 마커
         clearMarkers();
         const pos = new kakao.maps.LatLng(r.y, r.x);
         const marker = new kakao.maps.Marker({ position: pos });
@@ -296,4 +316,3 @@
 
 </body>
 </html>
-
