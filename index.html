@@ -42,7 +42,6 @@
             </div>
           </header>
 
-          <!-- 🔧 문구 변경 -->
           <div class="mt-3 text-center text-sm sm:text-base text-slate-300">
             ※ 주소 검색을 통해 콘덴싱 보일러 설치 여부 확인
           </div>
@@ -99,7 +98,6 @@
   <!-- 지도 영역 -->
   <div class="max-w-6xl mx-auto px-4 pb-10">
 
-    <!-- ✅ 절대 안 잘리는 안내 문구 -->
     <div class="mb-4 text-center px-2">
       <div class="text-xs sm:text-sm font-semibold text-slate-400
                   whitespace-normal break-keep leading-relaxed">
@@ -111,7 +109,6 @@
       </div>
     </div>
 
-    <!-- 지도 카드 -->
     <div class="rounded-3xl border border-white/10 bg-white/5
                 backdrop-blur shadow-[0_20px_60px_rgba(0,0,0,0.45)]
                 overflow-hidden">
@@ -123,6 +120,72 @@
   <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=485d2de99e1aa2076405dfb51411b5d7&libraries=services&autoload=false"></script>
 
   <script>
+    /**********************************************************************
+     * ✅ 1) 여기 2개만 너 Supabase 값으로 바꿔줘
+     **********************************************************************/
+    const SUPABASE_URL = "https://ejiocupbmoyqziaziiya.supabase.co"; // ← 너 프로젝트 URL
+    const SUPABASE_ANON_KEY = "sb_publishable_vRdnw-7IoqBST-wvBCV6eA_2635Pdvx";          // ← anon public key
+
+    /**********************************************************************
+     * ✅ 2) 주소 키 정규화(엑셀/DB 만들 때랑 규칙을 맞추는 게 핵심)
+     *    - 최소 정규화: 괄호 제거, 공백 정리
+     **********************************************************************/
+    function normalizeAddr(s) {
+      if (!s) return "";
+      return String(s)
+        .replace(/\(.*?\)/g, "")      // 괄호 제거
+        .replace(/[\t\r\n]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    /**********************************************************************
+     * ✅ 3) Supabase에서 addr_key로 result 가져오기
+     *    - 테이블: addr_map
+     *    - 컬럼: addr_key (PK), result
+     **********************************************************************/
+    const heatCache = new Map(); // 동일 주소 재조회 방지(속도/트래픽 절약)
+
+    async function fetchHeatFromSupabase(addr) {
+      const key = normalizeAddr(addr);
+      if (!key) return "정보없음";
+      if (heatCache.has(key)) return heatCache.get(key);
+
+      // REST endpoint: /rest/v1/<table>?addr_key=eq.<value>&select=result
+      const url =
+        `${SUPABASE_URL}/rest/v1/addr_map` +
+        `?addr_key=eq.${encodeURIComponent(key)}` +
+        `&select=result` +
+        `&limit=1`;
+
+      try {
+        const res = await fetch(url, {
+          method: "GET",
+          headers: {
+            "apikey": SUPABASE_ANON_KEY,
+            "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+            "Accept": "application/json"
+          }
+        });
+
+        if (!res.ok) {
+          console.error("Supabase fetch failed:", res.status, await res.text());
+          return "정보없음";
+        }
+
+        const data = await res.json();
+        const result = (Array.isArray(data) && data.length > 0 && data[0].result)
+          ? data[0].result
+          : "정보없음";
+
+        heatCache.set(key, result);
+        return result;
+      } catch (e) {
+        console.error("Supabase error:", e);
+        return "정보없음";
+      }
+    }
+
     kakao.maps.load(function () {
 
       const map = new kakao.maps.Map(document.getElementById("map"), {
@@ -133,12 +196,6 @@
       const geocoder = new kakao.maps.services.Geocoder();
       const places = new kakao.maps.services.Places();
       let markers = [];
-
-      const heatAddrDB = {
-        "국회대로76길22": "콘덴싱보일러",
-        "헬리오시티": "지역난방",
-        "래미안퍼스티지": "지역난방"
-      };
 
       function clearMarkers() {
         markers.forEach(m => m.setMap(null));
@@ -201,15 +258,18 @@
         });
       }
 
-      function selectAddress(r) {
+      async function selectAddress(r) {
         document.getElementById("resultBox").classList.add("hidden");
 
         const addr = r.address_name || r.place_name;
-        const heat = heatAddrDB[addr] || "정보없음";
+
+        // ✅ Supabase 조회로 변경
+        const heat = await fetchHeatFromSupabase(addr);
 
         const info = document.getElementById("infoBox");
         info.classList.remove("hidden");
 
+        // 조회 중 느낌을 주고 싶으면 로딩 문구도 추가 가능(원하면 넣어줄게)
         info.className =
           "mt-4 px-5 py-4 text-lg sm:text-2xl font-extrabold rounded-2xl " +
           (heat === "정보없음"
@@ -221,6 +281,7 @@
             ? `해당 지역은 <span class="text-amber-300">정보가 없는 지역</span>입니다.`
             : `해당 지역은 <span class="underline">${heat}</span> 설치지역입니다.`;
 
+        // 지도 마커
         clearMarkers();
         const pos = new kakao.maps.LatLng(r.y, r.x);
         const marker = new kakao.maps.Marker({ position: pos });
