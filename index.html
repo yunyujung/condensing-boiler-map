@@ -34,8 +34,12 @@
 
           <!-- 제목 -->
           <header class="text-center leading-tight">
-            <div class="text-2xl sm:text-4xl font-extrabold">서울시 공동주택</div>
-            <div class="mt-1 text-2xl sm:text-4xl font-extrabold">콘덴싱 보일러 설치 맵</div>
+            <div class="text-2xl sm:text-4xl font-extrabold">
+              서울시 공동주택
+            </div>
+            <div class="mt-1 text-2xl sm:text-4xl font-extrabold">
+              콘덴싱 보일러 설치 맵
+            </div>
           </header>
 
           <div class="mt-3 text-center text-sm sm:text-base text-slate-300">
@@ -50,7 +54,7 @@
                      bg-slate-900/60 border border-white/10 text-slate-100
                      placeholder:text-slate-400 outline-none
                      focus:ring-2 focus:ring-indigo-400/70"
-              placeholder="주소를 입력하세요 (예: 신공덕동155 / 마포구 신공덕동 155)"
+              placeholder="주소를 입력하세요 (예: 국회대로76길22)"
             />
             <button
               onclick="searchAddress()"
@@ -86,14 +90,6 @@
                class="mt-4 px-5 py-4 text-lg sm:text-2xl
                       font-extrabold rounded-2xl hidden"></div>
 
-          <!-- ✅ 디버그 박스(조회 키 확인용) -->
-          <div id="debugBox"
-               class="mt-3 px-4 py-3 text-xs sm:text-sm rounded-2xl
-                      border border-white/10 bg-slate-900/30 text-slate-200 hidden">
-            <div class="font-bold text-slate-100">[디버그] DB 조회 키</div>
-            <pre id="debugText" class="whitespace-pre-wrap break-words mt-2 text-slate-300"></pre>
-          </div>
-
         </div>
       </div>
     </div>
@@ -101,16 +97,21 @@
 
   <!-- 지도 영역 -->
   <div class="max-w-6xl mx-auto px-4 pb-10">
+
     <div class="mb-4 text-center px-2">
-      <div class="text-xs sm:text-sm font-semibold text-slate-400 whitespace-normal break-keep leading-relaxed">
+      <div class="text-xs sm:text-sm font-semibold text-slate-400
+                  whitespace-normal break-keep leading-relaxed">
         ※ 아래 지도는 참고용입니다.
       </div>
-      <div class="text-[11px] sm:text-xs text-slate-500 whitespace-normal break-keep leading-relaxed">
+      <div class="text-[11px] sm:text-xs text-slate-500
+                  whitespace-normal break-keep leading-relaxed">
         (마커는 선택한 주소 기준으로 표시됩니다)
       </div>
     </div>
 
-    <div class="rounded-3xl border border-white/10 bg-white/5 backdrop-blur shadow-[0_20px_60px_rgba(0,0,0,0.45)] overflow-hidden">
+    <div class="rounded-3xl border border-white/10 bg-white/5
+                backdrop-blur shadow-[0_20px_60px_rgba(0,0,0,0.45)]
+                overflow-hidden">
       <div id="map" class="w-full h-[62vh]"></div>
     </div>
   </div>
@@ -120,171 +121,73 @@
 
   <script>
     /**********************************************************************
-     * ✅ Supabase 설정
+     * ✅ 1) 여기 2개만 너 Supabase 값으로 바꿔줘
      **********************************************************************/
-    const SUPABASE_URL = "https://ejiocupbmoyqziaziiya.supabase.co";
-    const SUPABASE_ANON_KEY = "sb_publishable_vRdnw-7IoqBST-wvBCV6eA_2635Pdvx";
+    const SUPABASE_URL = "https://xxxxxxx.supabase.co"; // ← 너 프로젝트 URL
+    const SUPABASE_ANON_KEY = "eyJhbGciOi...";          // ← anon public key
 
     /**********************************************************************
-     * ✅ 정규화: 표기 흔들림(서울특별시/서울시/서울) + 번지 제거 + 공백 정리
-     * - "155번지" vs "155" 차이 제거
+     * ✅ 2) 주소 키 정규화(엑셀/DB 만들 때랑 규칙을 맞추는 게 핵심)
+     *    - 최소 정규화: 괄호 제거, 공백 정리
      **********************************************************************/
     function normalizeAddr(s) {
       if (!s) return "";
-      let t = String(s);
-
-      // 괄호 제거
-      t = t.replace(/\(.*?\)/g, "");
-
-      // 앞쪽 표기 통일
-      t = t.replace(/^서울특별시\s+/,"서울특별시 ")
-           .replace(/^서울시\s+/,"서울시 ")
-           .replace(/^서울\s+/,"서울 ");
-
-      // '번지' 제거(지번 주소 흔들림)
-      t = t.replace(/(\d+)\s*번지/g, "$1");
-
-      // 공백 정리
-      t = t.replace(/[\t\r\n]/g, " ").replace(/\s+/g, " ").trim();
-
-      return t;
-    }
-
-    // "서울특별시/서울시/서울" 변형을 모두 시도
-    function expandSeoulVariants(key) {
-      const base = normalizeAddr(key);
-      const out = new Set([base]);
-
-      if (base.startsWith("서울특별시 ")) {
-        out.add(normalizeAddr(base.replace(/^서울특별시\s+/, "서울 ")));
-        out.add(normalizeAddr(base.replace(/^서울특별시\s+/, "서울시 ")));
-      }
-      if (base.startsWith("서울시 ")) {
-        out.add(normalizeAddr(base.replace(/^서울시\s+/, "서울 ")));
-        out.add(normalizeAddr(base.replace(/^서울시\s+/, "서울특별시 ")));
-      }
-      if (base.startsWith("서울 ")) {
-        out.add(normalizeAddr(base.replace(/^서울\s+/, "서울특별시 ")));
-        out.add(normalizeAddr(base.replace(/^서울\s+/, "서울시 ")));
-      }
-
-      return [...out].filter(Boolean);
+      return String(s)
+        .replace(/\(.*?\)/g, "")      // 괄호 제거
+        .replace(/[\t\r\n]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
     }
 
     /**********************************************************************
-     * ✅ 카카오 결과에서 주소 후보 뽑기
-     * - geocoder.addressSearch 결과 / places.keywordSearch 결과가 다르기 때문에
-     *   가능한 필드를 전부 수집
+     * ✅ 3) Supabase에서 addr_key로 result 가져오기
+     *    - 테이블: addr_map
+     *    - 컬럼: addr_key (PK), result
      **********************************************************************/
-    function buildKeyCandidatesFromKakao(r) {
-      const cands = [];
+    const heatCache = new Map(); // 동일 주소 재조회 방지(속도/트래픽 절약)
 
-      // addressSearch에서 주로 쓰는 값
-      if (r.address_name) cands.push(r.address_name);
+    async function fetchHeatFromSupabase(addr) {
+      const key = normalizeAddr(addr);
+      if (!key) return "정보없음";
+      if (heatCache.has(key)) return heatCache.get(key);
 
-      // keywordSearch(Places)에서 쓰는 값들
-      if (r.road_address_name) cands.push(r.road_address_name);
-      if (r.address_name) cands.push(r.address_name);
-
-      // 일부 구조에서 들어오는 중첩 객체(있는 경우만)
-      if (r.address && r.address.address_name) cands.push(r.address.address_name);
-      if (r.road_address && r.road_address.address_name) cands.push(r.road_address.address_name);
-
-      // 정규화 + 중복 제거
-      const norm = cands.map(normalizeAddr).filter(Boolean);
-      return [...new Set(norm)];
-    }
-
-    /**********************************************************************
-     * ✅ Supabase 조회 (존재하면 콘덴싱)
-     **********************************************************************/
-    const heatCache = new Map(); // 성공만 캐시
-
-    async function existsInDb(key) {
+      // REST endpoint: /rest/v1/<table>?addr_key=eq.<value>&select=result
       const url =
         `${SUPABASE_URL}/rest/v1/addr_map` +
         `?addr_key=eq.${encodeURIComponent(key)}` +
-        `&select=addr_key` +
+        `&select=result` +
         `&limit=1`;
 
-      const res = await fetch(url, {
-        method: "GET",
-        headers: {
-          "apikey": SUPABASE_ANON_KEY,
-          "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
-          "Accept": "application/json"
-        }
-      });
-
-      const text = await res.text();
-      if (!res.ok) {
-        console.error("Supabase error:", res.status, text);
-        return { ok:false, status:res.status, key, text };
-      }
-
-      let data;
       try {
-        data = JSON.parse(text);
-      } catch (e) {
-        console.error("JSON parse error:", e, text);
-        return { ok:false, status:res.status, key, text };
-      }
-
-      const exists = Array.isArray(data) && data.length > 0;
-      return { ok:true, exists, status:res.status, key, text };
-    }
-
-    async function fetchHeatFromSupabaseByKakaoResult(r) {
-      const debugLines = [];
-
-      const baseKeys = buildKeyCandidatesFromKakao(r);
-      debugLines.push("baseKeys:");
-      baseKeys.forEach(k => debugLines.push(" - " + k));
-
-      for (const base of baseKeys) {
-        const variants = expandSeoulVariants(base);
-        debugLines.push("");
-        debugLines.push("try variants for: " + base);
-        variants.forEach(v => debugLines.push(" * " + v));
-
-        for (const key of variants) {
-          if (heatCache.has(key)) {
-            debugLines.push("   -> cache HIT ✅");
-            showDebug(debugLines.join("\n"));
-            return heatCache.get(key);
+        const res = await fetch(url, {
+          method: "GET",
+          headers: {
+            "apikey": SUPABASE_ANON_KEY,
+            "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+            "Accept": "application/json"
           }
+        });
 
-          const res = await existsInDb(key);
-          if (!res.ok) {
-            debugLines.push(`   -> HTTP/JSON FAIL ❌ status=${res.status}`);
-            continue;
-          }
-
-          if (res.exists) {
-            debugLines.push("   -> MATCH ✅ (exists in DB)");
-            heatCache.set(key, "콘덴싱보일러");
-            showDebug(debugLines.join("\n"));
-            return "콘덴싱보일러";
-          } else {
-            debugLines.push("   -> no row");
-          }
+        if (!res.ok) {
+          console.error("Supabase fetch failed:", res.status, await res.text());
+          return "정보없음";
         }
+
+        const data = await res.json();
+        const result = (Array.isArray(data) && data.length > 0 && data[0].result)
+          ? data[0].result
+          : "정보없음";
+
+        heatCache.set(key, result);
+        return result;
+      } catch (e) {
+        console.error("Supabase error:", e);
+        return "정보없음";
       }
-
-      debugLines.push("");
-      debugLines.push("FINAL: no match -> 정보없음");
-      showDebug(debugLines.join("\n"));
-      return "정보없음";
-    }
-
-    function showDebug(text) {
-      const box = document.getElementById("debugBox");
-      const pre = document.getElementById("debugText");
-      pre.textContent = text;
-      box.classList.remove("hidden");
     }
 
     kakao.maps.load(function () {
+
       const map = new kakao.maps.Map(document.getElementById("map"), {
         center: new kakao.maps.LatLng(36.3, 127.9),
         level: 11,
@@ -338,7 +241,7 @@
 
           row.innerHTML = `
             <div class="col-span-8 text-sm sm:text-base cursor-pointer">
-              ${r.address_name || r.place_name || r.road_address_name || "(주소표시불가)"}
+              ${r.address_name || r.place_name}
             </div>
             <div class="col-span-2 text-right">
               <button class="px-3 py-1.5 text-xs font-bold rounded-xl
@@ -358,11 +261,15 @@
       async function selectAddress(r) {
         document.getElementById("resultBox").classList.add("hidden");
 
-        const heat = await fetchHeatFromSupabaseByKakaoResult(r);
+        const addr = r.address_name || r.place_name;
+
+        // ✅ Supabase 조회로 변경
+        const heat = await fetchHeatFromSupabase(addr);
 
         const info = document.getElementById("infoBox");
         info.classList.remove("hidden");
 
+        // 조회 중 느낌을 주고 싶으면 로딩 문구도 추가 가능(원하면 넣어줄게)
         info.className =
           "mt-4 px-5 py-4 text-lg sm:text-2xl font-extrabold rounded-2xl " +
           (heat === "정보없음"
@@ -372,7 +279,7 @@
         info.innerHTML =
           heat === "정보없음"
             ? `해당 지역은 <span class="text-amber-300">정보가 없는 지역</span>입니다.`
-            : `해당 지역은 <span class="underline">콘덴싱보일러</span> 설치지역입니다.`;
+            : `해당 지역은 <span class="underline">${heat}</span> 설치지역입니다.`;
 
         // 지도 마커
         clearMarkers();
@@ -384,6 +291,7 @@
         map.setCenter(pos);
         map.setLevel(5);
       }
+
     });
   </script>
 
