@@ -181,10 +181,10 @@
         
         console.log("DATA", data, "len=", Array.isArray(data) ? data.length : "not array");
 
-        const data = await res.json();
-        const result = (Array.isArray(data) && data.length > 0 && data[0].result)
-          ? data[0].result
-          : "정보없음";
+        //const data = await res.json();
+        //const result = (Array.isArray(data) && data.length > 0 && data[0].result)
+         // ? data[0].result
+       //   : "정보없음";
 
         heatCache.set(key, result);
         return result;
@@ -305,6 +305,7 @@
 
 </body>
 </html>
+
 
 
 
