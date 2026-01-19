@@ -171,8 +171,10 @@
           console.error("Supabase fetch failed:", res.status, await res.text());
           return "정보없음";
         }
-
-        const data = await res.json();
+        const text = await res.text();
+console.log("STATUS:", res.status);
+console.log("RAW BODY:", text);
+        //const data = await res.json();
         const result = (Array.isArray(data) && data.length > 0 && data[0].result)
           ? data[0].result
           : "정보없음";
@@ -296,6 +298,7 @@
 
 </body>
 </html>
+
 
 
 
