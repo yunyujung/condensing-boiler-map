@@ -149,7 +149,6 @@
     async function fetchHeatFromSupabase(addr) {
       const key = normalizeAddr(addr);
       if (!key) return "정보없음";
-      if (heatCache.has(key)) return heatCache.get(key);
 
       // REST endpoint: /rest/v1/<table>?addr_key=eq.<value>&select=result
       const url =
@@ -297,3 +296,4 @@
 
 </body>
 </html>
+
