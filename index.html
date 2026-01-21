@@ -235,7 +235,8 @@
       function pickAddr(r) {
         if (r.address != null){
           const jibun = r.address.address_name;
-        else{
+        };
+        if (r.address == null){
           const jibun = "";
         };
         
@@ -443,6 +444,7 @@
 
 </body>
 </html>
+
 
 
 
