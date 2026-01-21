@@ -54,7 +54,7 @@
                      bg-slate-900/60 border border-white/10 text-slate-100
                      placeholder:text-slate-400 outline-none
                      focus:ring-2 focus:ring-indigo-400/70"
-              placeholder="주소를 입력하세요 (예: 국회대로76길22)"
+              placeholder="주소를 입력하세요 (예: 국회대로76길22 / 신공덕동 155)"
             />
             <button
               onclick="searchAddress()"
@@ -63,6 +63,14 @@
                      text-slate-950">
               🔍 주소 검색
             </button>
+          </div>
+
+          <!-- 로딩 -->
+          <div id="loadingBox"
+               class="mt-4 px-4 py-3 text-sm rounded-2xl
+                      border border-indigo-300/20 bg-indigo-500/10
+                      text-indigo-100 hidden">
+            조회 중입니다...
           </div>
 
           <!-- 에러 -->
@@ -76,19 +84,18 @@
                class="mt-4 rounded-2xl border border-white/10
                       bg-slate-900/40 overflow-hidden hidden">
 
-            <div class="grid grid-cols-10 gap-3 px-4 py-3 bg-white/5
+            <div class="grid grid-cols-12 gap-3 px-4 py-3 bg-white/5
                         text-xs sm:text-sm font-semibold text-slate-300">
-              <div class="col-span-8">주소</div>
+              <div class="col-span-10">검색 결과</div>
               <div class="col-span-2 text-right">선택</div>
             </div>
 
             <div id="resultList"></div>
           </div>
 
-          <!-- 난방유형 -->
+          <!-- 정보(우편번호/지번/도로명 + 설치여부) -->
           <div id="infoBox"
-               class="mt-4 px-5 py-4 text-lg sm:text-2xl
-                      font-extrabold rounded-2xl hidden"></div>
+               class="mt-4 px-5 py-4 rounded-2xl hidden"></div>
 
         </div>
       </div>
@@ -124,7 +131,7 @@
      * ✅ 1) 여기 2개만 너 Supabase 값으로 바꿔줘
      **********************************************************************/
     const SUPABASE_URL = "https://ejiocupbmoyqziaziiya.supabase.co"; // ← 너 프로젝트 URL
-    const SUPABASE_ANON_KEY = "sb_publishable_vRdnw-7IoqBST-wvBCV6eA_2635Pdvx";          // ← anon public key
+    const SUPABASE_ANON_KEY = "sb_publishable_vRdnw-7IoqBST-wvBCV6eA_2635Pdvx"; // ← anon public key
 
     /**********************************************************************
      * ✅ 2) 주소 키 정규화(엑셀/DB 만들 때랑 규칙을 맞추는 게 핵심)
@@ -150,7 +157,8 @@
       const key = normalizeAddr(addr);
       if (!key) return "정보없음";
 
-      // REST endpoint: /rest/v1/<table>?addr_key=eq.<value>&select=result
+      if (heatCache.has(key)) return heatCache.get(key);
+
       const url =
         `${SUPABASE_URL}/rest/v1/addr_map` +
         `?addr_key=eq.${encodeURIComponent(key)}` +
@@ -169,9 +177,10 @@
 
         if (!res.ok) {
           console.error("Supabase fetch failed:", res.status, await res.text());
+          heatCache.set(key, "정보없음");
           return "정보없음";
         }
-        
+
         const data = await res.json();
         const result = (Array.isArray(data) && data.length > 0 && data[0].result)
           ? data[0].result
@@ -181,6 +190,7 @@
         return result;
       } catch (e) {
         console.error("Supabase error:", e);
+        heatCache.set(key, "정보없음");
         return "정보없음";
       }
     }
@@ -196,51 +206,110 @@
       const places = new kakao.maps.services.Places();
       let markers = [];
 
+      // 좌표->주소(우편번호 포함) 캐시: 같은 좌표 재조회 방지
+      const coordCache = new Map(); // key: "x,y" => {zip, road, jibun}
+
+      function setHidden(id, hidden) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.classList.toggle("hidden", hidden);
+      }
+
+      function showError(msg) {
+        const box = document.getElementById("errorBox");
+        box.textContent = msg;
+        setHidden("errorBox", false);
+      }
+
+      function clearError() {
+        setHidden("errorBox", true);
+        document.getElementById("errorBox").textContent = "";
+      }
+
       function clearMarkers() {
         markers.forEach(m => m.setMap(null));
         markers = [];
       }
 
-      window.searchAddress = function () {
-        document.getElementById("errorBox").classList.add("hidden");
+      // ✅ (핵심) 검색 결과 r에서 지번/도로명/우편번호/좌표 뽑기
+      function pickAddr(r) {
+        const jibun =
+          r.address_name ||
+          (r.address && r.address.address_name) ||
+          "";
 
-        const keyword = document.getElementById("addr").value.trim();
-        if (!keyword) {
-          alert("주소를 입력하세요!");
-          return;
-        }
+        const road =
+          r.road_address_name ||
+          (r.road_address && r.road_address.address_name) ||
+          "";
 
-        geocoder.addressSearch(keyword, function (result, status) {
-          if (status === kakao.maps.services.Status.OK) {
-            renderResult(result);
-          } else {
-            places.keywordSearch(keyword, function (res, stat) {
-              if (stat === kakao.maps.services.Status.OK) {
-                renderResult(res);
-              } else {
-                document.getElementById("errorBox").textContent =
-                  "주소 검색이 실패했습니다. 다시 확인해주세요.";
-                document.getElementById("errorBox").classList.remove("hidden");
-              }
-            });
-          }
+        const zip =
+          (r.road_address && r.road_address.zone_no) ||
+          (r.address && r.address.zip_code) ||
+          "";
+
+        const x = Number(r.x);
+        const y = Number(r.y);
+
+        return { jibun, road, zip, x, y, raw: r };
+      }
+
+      // ✅ 좌표로 우편번호/도로명/지번 보강 (places 결과는 zip이 비어있는 경우가 많음)
+      function coord2FullAddress(x, y) {
+        return new Promise((resolve) => {
+          if (!x || !y) return resolve({ zip: "", road: "", jibun: "" });
+
+          const key = `${x},${y}`;
+          if (coordCache.has(key)) return resolve(coordCache.get(key));
+
+          geocoder.coord2Address(x, y, function (res, status) {
+            if (status !== kakao.maps.services.Status.OK || !res || !res[0]) {
+              const empty = { zip: "", road: "", jibun: "" };
+              coordCache.set(key, empty);
+              return resolve(empty);
+            }
+            const a = res[0];
+            const out = {
+              zip: (a.road_address && a.road_address.zone_no) || "",
+              road: (a.road_address && a.road_address.address_name) || "",
+              jibun: (a.address && a.address.address_name) || "",
+            };
+            coordCache.set(key, out);
+            resolve(out);
+          });
         });
-      };
+      }
 
+      // ✅ 목록에 우편번호/지번/도로명처럼 보이게 렌더링
       function renderResult(result) {
         const box = document.getElementById("resultBox");
         const list = document.getElementById("resultList");
         list.innerHTML = "";
+        setHidden("infoBox", true);
         box.classList.remove("hidden");
 
         result.forEach(r => {
+          const a = pickAddr(r);
+
+          const zipText = a.zip ? a.zip : "우편번호(선택 시 확인)";
+          const jibunText = a.jibun ? a.jibun : (r.place_name ? r.place_name : "-");
+          const roadText = a.road ? a.road : "-";
+
           const row = document.createElement("div");
           row.className =
-            "grid grid-cols-10 gap-3 px-4 py-3 border-t border-white/5 hover:bg-white/5";
+            "grid grid-cols-12 gap-3 px-4 py-3 border-t border-white/5 hover:bg-white/5";
 
           row.innerHTML = `
-            <div class="col-span-8 text-sm sm:text-base cursor-pointer">
-              ${r.address_name || r.place_name}
+            <div class="col-span-10 min-w-0 cursor-pointer">
+              <div class="text-sm sm:text-base font-extrabold text-slate-200">
+                ${zipText}
+              </div>
+              <div class="mt-1 text-xs sm:text-sm text-slate-200 break-keep">
+                (지번) ${jibunText}
+              </div>
+              <div class="mt-1 text-xs sm:text-sm text-slate-400 break-keep">
+                (도로명) ${roadText}
+              </div>
             </div>
             <div class="col-span-2 text-right">
               <button class="px-3 py-1.5 text-xs font-bold rounded-xl
@@ -250,39 +319,112 @@
             </div>
           `;
 
-          row.querySelector("button").onclick = () => selectAddress(r);
-          row.children[0].onclick = () => selectAddress(r);
+          row.querySelector("button").onclick = (e) => {
+            e.stopPropagation();
+            selectAddress(r);
+          };
+          row.querySelector(".col-span-10").onclick = () => selectAddress(r);
 
           list.appendChild(row);
         });
       }
 
+      // ✅ 검색 버튼
+      window.searchAddress = function () {
+        clearError();
+        setHidden("loadingBox", true);
+        setHidden("resultBox", true);
+        setHidden("infoBox", true);
+
+        const keyword = document.getElementById("addr").value.trim();
+        if (!keyword) {
+          alert("주소를 입력하세요!");
+          return;
+        }
+
+        // 1) 주소 검색(도로명/지번 정확 주소)
+        geocoder.addressSearch(keyword, function (result, status) {
+          if (status === kakao.maps.services.Status.OK && Array.isArray(result) && result.length > 0) {
+            renderResult(result);
+          } else {
+            // 2) 키워드 검색(건물명/장소명)
+            places.keywordSearch(keyword, function (res, stat) {
+              if (stat === kakao.maps.services.Status.OK && Array.isArray(res) && res.length > 0) {
+                renderResult(res);
+              } else {
+                showError("주소 검색이 실패했습니다. 다시 확인해주세요.");
+              }
+            });
+          }
+        });
+      };
+
+      // ✅ 선택 -> 우편번호 포함 최종 주소 보강 -> Supabase 조회 -> 표시
       async function selectAddress(r) {
-        document.getElementById("resultBox").classList.add("hidden");
+        clearError();
+        setHidden("loadingBox", false);
+        setHidden("resultBox", true);
 
-        const addr = r.address_name || r.place_name;
+        const picked = pickAddr(r);
 
-        // ✅ Supabase 조회로 변경
-        const heat = await fetchHeatFromSupabase(addr);
+        // 좌표가 없는 케이스 대비
+        if (!picked.x || !picked.y) {
+          setHidden("loadingBox", true);
+          showError("좌표 정보를 가져오지 못했습니다. 다른 검색 결과를 선택해 주세요.");
+          return;
+        }
 
+        // 우편번호/도로명/지번 보강
+        const full = await coord2FullAddress(picked.x, picked.y);
+
+        const finalZip = picked.zip || full.zip || "";
+        const finalRoad = picked.road || full.road || "";
+        const finalJibun = picked.jibun || full.jibun || "";
+
+        // ✅ DB 조회 키: 도로명 우선(원하면 finalJibun 우선으로 바꾸면 됨)
+        const lookupAddr = finalRoad || finalJibun;
+
+        // Supabase 조회
+        const heat = await fetchHeatFromSupabase(lookupAddr);
+
+        // 정보 박스 표시
         const info = document.getElementById("infoBox");
-        info.classList.remove("hidden");
+        setHidden("loadingBox", true);
+        setHidden("infoBox", false);
 
-        // 조회 중 느낌을 주고 싶으면 로딩 문구도 추가 가능(원하면 넣어줄게)
         info.className =
-          "mt-4 px-5 py-4 text-lg sm:text-2xl font-extrabold rounded-2xl " +
+          "mt-4 px-5 py-4 rounded-2xl border " +
           (heat === "정보없음"
-            ? "bg-amber-500/10 border border-amber-400/20"
-            : "bg-indigo-500/10 border border-indigo-300/20");
+            ? "bg-amber-500/10 border-amber-400/20"
+            : "bg-indigo-500/10 border-indigo-300/20");
 
-        info.innerHTML =
-          heat === "정보없음"
-            ? `해당 지역은 <span class="text-amber-300">정보가 없는 지역</span>입니다.`
-            : `해당 지역은 <span class="underline">${heat}</span> 설치지역입니다.`;
+        info.innerHTML = `
+          <div class="text-slate-100">
+            <div class="text-lg sm:text-2xl font-extrabold">
+              ${finalZip ? finalZip : "우편번호 정보 없음"}
+            </div>
 
-        // 지도 마커
+            <div class="mt-3 text-xs sm:text-sm text-slate-200">
+              <span class="font-bold">(지번)</span> ${finalJibun || "-"}
+            </div>
+
+            <div class="mt-1 text-xs sm:text-sm text-slate-400">
+              <span class="font-bold text-slate-300">(도로명)</span> ${finalRoad || "-"}
+            </div>
+
+            <div class="mt-4 text-base sm:text-lg font-extrabold">
+              ${
+                heat === "정보없음"
+                  ? `해당 지역은 <span class="text-amber-300">정보가 없는 지역</span>입니다.`
+                  : `해당 지역은 <span class="underline">${heat}</span> 설치지역입니다.`
+              }
+            </div>
+          </div>
+        `;
+
+        // 지도 마커 표시
         clearMarkers();
-        const pos = new kakao.maps.LatLng(r.y, r.x);
+        const pos = new kakao.maps.LatLng(picked.y, picked.x);
         const marker = new kakao.maps.Marker({ position: pos });
         marker.setMap(map);
         markers.push(marker);
@@ -296,10 +438,3 @@
 
 </body>
 </html>
-
-
-
-
-
-
-
