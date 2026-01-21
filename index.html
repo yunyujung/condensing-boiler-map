@@ -233,15 +233,15 @@
 
       // ✅ (핵심) 검색 결과 r에서 지번/도로명/우편번호/좌표 뽑기
       function pickAddr(r) {
-        const jibun =
-          r.address_name ||
-          (r.address && r.address.address_name) ||
-          "";
+        const jibun = r.address.address_name;
+          //r.address_name ||
+          //(r.address && r.address.address_name) ||
+          //"";
 
-        const road =
-          r.road_address_name ||
-          (r.road_address && r.road_address.address_name) ||
-          "";
+        const road = r.road_address.address_name;
+          //r.road_address_name ||
+          //(r.road_address && r.road_address.address_name) ||
+          //"";
 
         const zip =
           (r.road_address && r.road_address.zone_no) ||
@@ -438,3 +438,4 @@
 
 </body>
 </html>
+
