@@ -382,7 +382,7 @@
         const finalJibun = picked.jibun || full.jibun || "";
 
         // ✅ DB 조회 키: 도로명 우선(원하면 finalJibun 우선으로 바꾸면 됨)
-        const lookupAddr = finalRoad || finalJibun;
+        const lookupAddr = finalZip;
 
         // Supabase 조회
         const heat = await fetchHeatFromSupabase(lookupAddr);
@@ -438,4 +438,5 @@
 
 </body>
 </html>
+
 
