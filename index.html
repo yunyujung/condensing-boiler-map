@@ -233,13 +233,7 @@
 
       // ✅ (핵심) 검색 결과 r에서 지번/도로명/우편번호/좌표 뽑기
       function pickAddr(r) {
-        if (r.address != null){
           const jibun = r.address.address_name;
-        };
-        if (r.address == null){
-          const jibun = "";
-        };
-        
           //r.address_name ||
           //(r.address && r.address.address_name) ||
           //"";
@@ -444,6 +438,7 @@
 
 </body>
 </html>
+
 
 
 
